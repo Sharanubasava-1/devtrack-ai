@@ -1,0 +1,10 @@
+Flask
+SQLAlchemy
+Flask-SQLAlchemy
+Flask-Cors
+marshmallow
+flask-marshmallow
+marshmallow-sqlalchemy
+# OpenAI API (optional, can use rules-based)
+openai
+python-dotenv
