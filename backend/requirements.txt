@@ -1,4 +1,5 @@
 Flask
+Werkzeug<3.0.0
 SQLAlchemy
 Flask-SQLAlchemy
 Flask-Cors
@@ -8,3 +9,4 @@ marshmallow-sqlalchemy
 # OpenAI API (optional, can use rules-based)
 openai
 python-dotenv
+pytest
