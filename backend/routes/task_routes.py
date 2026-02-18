@@ -1,85 +1,133 @@
 from flask import Blueprint, request, jsonify
 from models.task_model import db, Task
 from schemas.task_schema import task_schema, tasks_schema
-from services.ai_service import ai_service
 from datetime import datetime
 
-task_bp = Blueprint('tasks', __name__)
+task_bp = Blueprint('task_bp', __name__)
 
-@task_bp.route('/', methods=['POST'])
+
+# -----------------------
+# AI Analysis Function
+# -----------------------
+def analyze_task(title, description):
+    text_to_analyze = (title or "") + " " + (description or "")
+    text = text_to_analyze.lower()
+
+    if not text.strip():
+        return "Low", "Low", "No content to analyze."
+
+    # Complexity Keywords
+    high_complexity_keywords = [
+        "ai", "machine learning", "neural network", "payment", 
+        "authentication", "security", "encryption", "blockchain",
+        "microservices", "infrastructure"
+    ]
+    medium_complexity_keywords = [
+        "api", "database", "backend", "frontend", "integration", 
+        "migration", "testing", "deploy", "pipeline"
+    ]
+
+    # Risk Keywords
+    high_risk_keywords = [
+        "payment", "financial", "security", "auth", "authentication",
+        "password", "secret", "key", "token", "credential", "login",
+        "signup", "register", "admin", "production", "db drop"
+    ]
+    medium_risk_keywords = [
+        "data", "user", "api", "database", "migration", "privacy"
+    ]
+
+    # Complexity Logic
+    if any(word in text for word in high_complexity_keywords):
+        complexity = "High"
+    elif any(word in text for word in medium_complexity_keywords):
+        complexity = "Medium"
+    else:
+        complexity = "Low"
+
+    # Risk Logic
+    if any(word in text for word in high_risk_keywords):
+        risk = "High"
+    elif any(word in text for word in medium_risk_keywords):
+        risk = "Medium"
+    else:
+        risk = "Low"
+
+    # Warning Generation
+    if risk == "High":
+        warning = "CRITICAL: This task involves sensitive security or financial components. Review carefully."
+    elif complexity == "High":
+        warning = "Complex task detected. Ensure proper planning and testing."
+    else:
+        warning = "No major risks detected."
+
+    return complexity, risk, warning
+
+
+# -----------------------
+# GET all tasks
+# -----------------------
+@task_bp.route('', methods=['GET'])
+def get_tasks():
+    try:
+        tasks = Task.query.order_by(Task.id.desc()).all()
+        return jsonify([task.to_dict() for task in tasks]), 200
+    except Exception as e:
+        print("ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500
+
+
+# -----------------------
+# CREATE new task
+# -----------------------
+@task_bp.route('', methods=['POST'])
 def create_task():
     try:
         data = request.get_json()
+
         title = data.get('title')
-        description = data.get('description', '')
+        description = data.get('description')
         deadline_str = data.get('deadline')
-        
+
+        if not title:
+            return jsonify({"error": "Title is required"}), 400
+
         deadline = None
         if deadline_str:
-            try:
-                deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-            except ValueError:
-               pass # Handle invalid date format gracefully (or return error)
+            deadline = datetime.fromisoformat(deadline_str.replace('Z', ''))
 
         # AI Analysis
-        ai_result = ai_service.analyze_task(description, deadline)
-        
+        complexity, risk_level, ai_warning = analyze_task(title, description)
+
         new_task = Task(
             title=title,
             description=description,
             deadline=deadline,
-            risk_level=ai_result['risk_level'],
-            complexity=ai_result['complexity'],
-            ai_warning=ai_result['ai_warning']
+            complexity=complexity,
+            risk_level=risk_level,
+            ai_warning=ai_warning
         )
-        
+
         db.session.add(new_task)
         db.session.commit()
-        
-        return task_schema.dump(new_task), 201
+
+        return jsonify(new_task.to_dict()), 201
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        print("ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500
 
-@task_bp.route('/', methods=['GET'])
-def get_tasks():
-    tasks = Task.query.all()
-    return tasks_schema.dump(tasks), 200
 
-@task_bp.route('/<int:id>', methods=['PUT', 'PATCH'])
-def update_task(id):
-    task = Task.query.get_or_404(id)
-    data = request.get_json()
-    
-    if 'title' in data:
-        task.title = data['title']
-    if 'description' in data:
-        task.description = data['description']
-    if 'status' in data:
-        task.status = data['status']
-    if 'priority' in data:
-        task.priority = data['priority']
-    if 'deadline' in data:
-        # Update deadline logic
-        try:
-           task.deadline = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
-        except:
-           pass
-
-    # Re-run AI analysis if description or deadline changed? 
-    # For now, let's keep it simple or maybe only on create? 
-    # Let's re-run if description is updated to keep it dynamic.
-    if 'description' in data or 'deadline' in data:
-         ai_result = ai_service.analyze_task(task.description, task.deadline)
-         task.risk_level = ai_result['risk_level']
-         task.complexity = ai_result['complexity']
-         task.ai_warning = ai_result['ai_warning']
-
-    db.session.commit()
-    return task_schema.dump(task), 200
-
+# -----------------------
+# DELETE task
+# -----------------------
 @task_bp.route('/<int:id>', methods=['DELETE'])
 def delete_task(id):
-    task = Task.query.get_or_404(id)
-    db.session.delete(task)
-    db.session.commit()
-    return jsonify({"message": "Task deleted"}), 200
+    try:
+        task = Task.query.get_or_404(id)
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({"message": "Task deleted"}), 200
+    except Exception as e:
+        print("ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500

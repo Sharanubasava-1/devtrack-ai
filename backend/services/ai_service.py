@@ -4,32 +4,98 @@ class AIService:
         complexity = "Low"
         warnings = []
 
-        description_lower = description.lower() if description else ""
+        # Safe lowercase conversion
+        description_lower = description.lower().strip() if description else ""
 
-        # Risk Analysis Rules
-        high_risk_keywords = ["payment", "security", "auth", "authentication", "money", "transfer", "database", "migration", "production"]
-        medium_risk_keywords = ["api", "service", "deploy", "update", "refactor"]
-        
-        if any(keyword in description_lower for keyword in high_risk_keywords):
-            risk_level = "High"
-        elif any(keyword in description_lower for keyword in medium_risk_keywords):
-            risk_level = "Medium"
+        # HIGH RISK KEYWORDS (expanded)
+        high_risk_keywords = [
+            "payment",
+            "security",
+            "auth",
+            "authentication",
+            "authorization",
+            "login",
+            "signup",
+            "jwt",
+            "token",
+            "encrypt",
+            "money",
+            "transfer",
+            "database",
+            "migration",
+            "production",
+            "credential",
+            "password"
+        ]
 
-        # Complexity Analysis Rules
-        high_complexity_keywords = ["system", "architecture", "engine", "integrate", "full-stack", "platform"]
-        medium_complexity_keywords = ["feature", "component", "page", "endpoint", "cache"]
+        # MEDIUM RISK KEYWORDS
+        medium_risk_keywords = [
+            "api",
+            "service",
+            "deploy",
+            "update",
+            "refactor",
+            "integration",
+            "backend"
+        ]
 
-        if any(keyword in description_lower for keyword in high_complexity_keywords):
-            complexity = "High"
-        elif any(keyword in description_lower for keyword in medium_complexity_keywords):
-            complexity = "Medium"
-        
-        # Missing Information Check
+        # RISK DETECTION (High priority first)
+        if description_lower:
+            for keyword in high_risk_keywords:
+                if keyword in description_lower:
+                    risk_level = "High"
+                    break
+
+            # Only check medium if still Low
+            if risk_level == "Low":
+                for keyword in medium_risk_keywords:
+                    if keyword in description_lower:
+                        risk_level = "Medium"
+                        break
+
+        # HIGH COMPLEXITY KEYWORDS
+        high_complexity_keywords = [
+            "system",
+            "architecture",
+            "engine",
+            "integrate",
+            "integration",
+            "full-stack",
+            "platform",
+            "microservice",
+            "scalable"
+        ]
+
+        # MEDIUM COMPLEXITY KEYWORDS
+        medium_complexity_keywords = [
+            "feature",
+            "component",
+            "page",
+            "endpoint",
+            "cache",
+            "module",
+            "implementation"
+        ]
+
+        # COMPLEXITY DETECTION
+        if description_lower:
+            for keyword in high_complexity_keywords:
+                if keyword in description_lower:
+                    complexity = "High"
+                    break
+
+            if complexity == "Low":
+                for keyword in medium_complexity_keywords:
+                    if keyword in description_lower:
+                        complexity = "Medium"
+                        break
+
+        # Missing Information Checks
         if not deadline:
             warnings.append("No deadline specified")
-        
-        if not description:
-             warnings.append("Description is empty")
+
+        if not description_lower:
+            warnings.append("Description is empty")
 
         return {
             "risk_level": risk_level,
@@ -37,4 +103,6 @@ class AIService:
             "ai_warning": ", ".join(warnings) if warnings else None
         }
 
+
+# Singleton instance
 ai_service = AIService()
