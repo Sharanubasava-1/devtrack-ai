@@ -1,3 +1,4 @@
+from turtle import title
 from flask import Blueprint, request, jsonify
 from models.task_model import db, Task
 from schemas.task_schema import task_schema, tasks_schema
@@ -89,8 +90,8 @@ def create_task():
         description = data.get('description')
         deadline_str = data.get('deadline')
 
-        if not title:
-            return jsonify({"error": "Title is required"}), 400
+        if not title or not description:
+            return jsonify({"error": "Title and description are required"}), 400
 
         deadline = None
         if deadline_str:
@@ -124,10 +125,16 @@ def create_task():
 @task_bp.route('/<int:id>', methods=['DELETE'])
 def delete_task(id):
     try:
-        task = Task.query.get_or_404(id)
+        task = db.session.get(Task, id)
+
+        if not task:
+            return jsonify({"error": "Task not found"}), 404
+
         db.session.delete(task)
         db.session.commit()
+
         return jsonify({"message": "Task deleted"}), 200
+
     except Exception as e:
         print("ERROR:", str(e))
         return jsonify({"error": str(e)}), 500

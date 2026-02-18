@@ -14,8 +14,9 @@ ma.init_app(app)
 
 app.register_blueprint(task_bp, url_prefix='/api/tasks')
 
-with app.app_context():
-    db.create_all()
+if not app.config.get("TESTING"):
+    with app.app_context():
+        db.create_all()
 
 @app.route('/')
 def home():
