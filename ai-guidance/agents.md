@@ -1,170 +1,45 @@
-# AI Agents Specification — DevTrack AI
+# AI Agent System Boundaries
 
-This file defines the behavior, scope, and safety constraints for AI agents used in DevTrack AI.
+This document defines strict constraints for AI agents modifying this repository.
 
-The purpose of these rules is to ensure AI-generated outputs remain predictable, safe, and do not compromise system integrity.
+## Allowed modifications
 
----
+AI agents may modify:
 
-# Risk Analysis Agent
+- frontend/components/
+- frontend/pages/
+- backend/routes/
+- backend/schemas/
 
-## Role
+## Restricted modifications
 
-Project Manager / Risk Assessor
+AI agents MUST NOT modify:
 
-## Goal
+- backend/models/task_model.py
+- database schema
+- validation rules
+- docker-compose.yml
 
-Analyze task descriptions and produce structured risk analysis without modifying system state.
+Schema changes require explicit human approval.
 
-## Input
+## Required guarantees
 
-Task description (string)
+AI-generated code MUST:
 
-Example:
-"Build payment integration system"
+- preserve API contracts
+- maintain backward compatibility
+- not break existing endpoints
+- include error handling
 
-## Output
+## Validation requirement
 
-JSON object with strictly defined schema:
+All new inputs must be validated using Marshmallow schemas.
 
-{
-"risk_level": "Low | Medium | High",
-"complexity": "Low | Medium | High",
-"ai_warning": "string or null"
-}
+AI agents must never bypass validation.
 
----
+## Failure safety
 
-## Allowed Responsibilities
+If AI is unsure, it must:
 
-The agent may:
-
-- Analyze task description text only
-- Identify risk indicators based on predefined rules
-- Estimate task complexity
-- Detect missing or incomplete information
-- Return structured JSON output
-
----
-
-## Forbidden Actions
-
-The agent MUST NOT:
-
-- Modify database schema
-- Modify database records directly
-- Execute code
-- Call external services without explicit approval
-- Change API structure
-- Generate executable code
-- Override validation rules
-
-The agent is strictly read-only and analysis-only.
-
----
-
-## Risk Detection Rules
-
-High Risk Keywords:
-
-payment
-security
-authentication
-authorization
-encryption
-database migration
-
-If present → risk_level = High
-
-Medium Risk Keywords:
-
-integration
-api
-backend
-deployment
-
-If present → risk_level = Medium
-
-Otherwise → risk_level = Low
-
----
-
-## Complexity Detection Rules
-
-High Complexity Keywords:
-
-system
-architecture
-microservices
-distributed
-
-Medium Complexity Keywords:
-
-integration
-feature
-module
-
-Otherwise → complexity = Low
-
----
-
-## Warning Detection Rules
-
-If description is:
-
-- Too short (< 10 characters)
-- Missing important context
-
-Return:
-
-ai_warning = "Insufficient task detail"
-
-Else:
-
-ai_warning = null
-
----
-
-## Output Requirements
-
-The agent must ALWAYS return valid JSON.
-
-Example:
-
-{
-"risk_level": "High",
-"complexity": "High",
-"ai_warning": null
-}
-
-Never return:
-
-- Free text
-- Code
-- Partial responses
-
----
-
-# System Safety Constraints
-
-AI output is advisory only.
-
-The system:
-
-- Validates all AI outputs
-- Does not trust AI blindly
-- Does not allow AI to modify core system logic
-
-AI operates as an isolated analysis component.
-
----
-
-# Future Agents (Planned)
-
-Breakdown Agent:
-Decompose tasks into subtasks.
-
-Assignment Agent:
-Suggest developer assignments.
-
-These agents will follow the same safety constraints.
+- return existing behavior
+- not introduce breaking changes

@@ -1,4 +1,3 @@
-from turtle import title
 from flask import Blueprint, request, jsonify
 from models.task_model import db, Task
 from schemas.task_schema import task_schema, tasks_schema
